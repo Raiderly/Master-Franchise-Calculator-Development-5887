@@ -13,27 +13,24 @@ const {
   FiPlus, 
   FiX, 
   FiFile, 
-  FiClock,
-  FiCheck,
-  FiAlertCircle,
-  FiEdit2,
-  FiRefreshCw,
-  FiCopy,
-  FiGitCompare
+  FiClock, 
+  FiCheck, 
+  FiAlertCircle, 
+  FiEdit2, 
+  FiRefreshCw, 
+  FiCopy, 
+  FiGitCompare 
 } = FiIcons;
 
-const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
+const ScenarioManager = ({ inputs, outputs, onLoadScenario, onCompareScenarios }) => {
   const { user } = useAuth();
   const { 
     scenarios, 
     saveScenario, 
     updateScenario, 
     deleteScenario, 
-    loading, 
-    comparing,
-    comparisonData,
-    compareScenarios,
-    clearComparison
+    loading,
+    fetchScenarios
   } = useScenarios();
   
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -42,8 +39,8 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
   const [scenarioName, setScenarioName] = useState('');
   const [description, setDescription] = useState('');
   const [editingScenario, setEditingScenario] = useState(null);
-  const [scenarioToCompare, setScenarioToCompare] = useState(null);
-  
+  const [selectedForComparison, setSelectedForComparison] = useState([]);
+
   // Reset form when closing modal
   useEffect(() => {
     if (!showSaveModal) {
@@ -53,30 +50,44 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
     }
   }, [showSaveModal]);
 
+  // Reset selection when closing compare modal
+  useEffect(() => {
+    if (!showCompareModal) {
+      setSelectedForComparison([]);
+    }
+  }, [showCompareModal]);
+
+  // Fetch scenarios when component mounts
+  useEffect(() => {
+    if (user) {
+      fetchScenarios();
+    }
+  }, [user, fetchScenarios]);
+
   const handleSaveScenario = async () => {
     if (!scenarioName.trim()) {
       toast.error('Please enter a scenario name');
       return;
     }
-
+    
     try {
       if (editingScenario) {
-        // Update existing scenario
         await updateScenario(editingScenario.id, {
           name: scenarioName,
           description: description,
-          inputs,
-          outputs
+          input_data: inputs,
+          output_data: outputs
         });
         setEditingScenario(null);
+        toast.success('Scenario updated successfully');
       } else {
-        // Save new scenario
         await saveScenario({
           name: scenarioName,
           description: description,
-          inputs,
-          outputs
+          input_data: inputs,
+          output_data: outputs
         });
+        toast.success('Scenario saved successfully');
       }
       
       setScenarioName('');
@@ -95,7 +106,7 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
   };
 
   const handleLoadScenario = (scenario) => {
-    onLoadScenario(scenario.inputs);
+    onLoadScenario(scenario.input_data, scenario.output_data);
     setShowLoadModal(false);
     toast.success(`Loaded scenario: ${scenario.name}`);
   };
@@ -103,6 +114,8 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
   const handleDeleteScenario = async (id, name) => {
     if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
       await deleteScenario(id);
+      // Remove from selection if it was selected for comparison
+      setSelectedForComparison(prev => prev.filter(s => s.id !== id));
     }
   };
 
@@ -111,8 +124,8 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
       const duplicatedScenario = {
         name: `${scenario.name} (Copy)`,
         description: scenario.description,
-        inputs: scenario.inputs,
-        outputs: scenario.outputs
+        input_data: scenario.input_data,
+        output_data: scenario.output_data
       };
       
       await saveScenario(duplicatedScenario);
@@ -122,21 +135,32 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
     }
   };
 
-  const handleCompare = () => {
-    if (!scenarioToCompare) {
-      toast.error('Please select a scenario to compare');
-      return;
-    }
-    
-    compareScenarios(scenarioToCompare);
-    setShowCompareModal(false);
-    onLoadScenario(scenarioToCompare.inputs);
-    toast.success(`Comparing with: ${scenarioToCompare.name}`);
+  const toggleScenarioSelection = (scenario) => {
+    setSelectedForComparison(prev => {
+      const isSelected = prev.some(s => s.id === scenario.id);
+      
+      if (isSelected) {
+        return prev.filter(s => s.id !== scenario.id);
+      } else if (prev.length < 2) {
+        return [...prev, scenario];
+      }
+      
+      return prev;
+    });
   };
 
-  const handleCancelCompare = () => {
-    clearComparison();
-    toast.success('Comparison mode disabled');
+  const handleCompareScenarios = () => {
+    if (selectedForComparison.length === 2) {
+      onCompareScenarios(selectedForComparison);
+      setShowCompareModal(false);
+    } else {
+      toast.error('Please select exactly 2 scenarios to compare');
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchScenarios();
+    toast.success('Scenarios refreshed');
   };
 
   if (!user) {
@@ -154,60 +178,52 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        <h3 className="text-lg font-montserrat font-semibold text-primary flex items-center">
-          <SafeIcon icon={FiFile} className="w-5 h-5 mr-2" />
-          Scenario Management
-          {comparing && (
-            <span className="ml-2 text-xs bg-secondary/20 text-secondary px-2 py-1 rounded-full">
-              Comparison Mode
-            </span>
-          )}
-        </h3>
+        <div className="flex items-center space-x-3">
+          <SafeIcon icon={FiFile} className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-montserrat font-semibold text-primary">
+            Scenario Management
+          </h3>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={handleRefresh}
+            className="p-1 rounded-full hover:bg-gray-100"
+            aria-label="Refresh scenarios"
+          >
+            <SafeIcon icon={FiRefreshCw} className="w-4 h-4 text-gray-500" />
+          </motion.button>
+        </div>
         
         <div className="flex flex-wrap gap-3">
-          {comparing ? (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleCancelCompare}
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-open-sans"
-            >
-              <SafeIcon icon={FiX} className="w-4 h-4" />
-              <span>Exit Comparison</span>
-            </motion.button>
-          ) : (
-            <>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowSaveModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors font-open-sans"
-              >
-                <SafeIcon icon={FiSave} className="w-4 h-4" />
-                <span>Save</span>
-              </motion.button>
-              
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowLoadModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-open-sans"
-              >
-                <SafeIcon icon={FiFolderOpen} className="w-4 h-4" />
-                <span>Load</span>
-              </motion.button>
-              
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowCompareModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-accent text-primary rounded-lg hover:bg-accent/90 transition-colors font-open-sans"
-              >
-                <SafeIcon icon={FiGitCompare} className="w-4 h-4" />
-                <span>Compare</span>
-              </motion.button>
-            </>
-          )}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowSaveModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors font-open-sans"
+          >
+            <SafeIcon icon={FiSave} className="w-4 h-4" />
+            <span>Save</span>
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowLoadModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-open-sans"
+          >
+            <SafeIcon icon={FiFolderOpen} className="w-4 h-4" />
+            <span>Load</span>
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowCompareModal(true)}
+            className="flex items-center space-x-2 px-4 py-2 bg-accent text-primary rounded-lg hover:bg-accent/90 transition-colors font-open-sans"
+          >
+            <SafeIcon icon={FiGitCompare} className="w-4 h-4" />
+            <span>Compare</span>
+          </motion.button>
         </div>
       </div>
 
@@ -228,10 +244,7 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
             >
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-lg font-montserrat font-semibold text-primary flex items-center">
-                  <SafeIcon 
-                    icon={editingScenario ? FiEdit2 : FiSave} 
-                    className="w-5 h-5 mr-2 text-secondary" 
-                  />
+                  <SafeIcon icon={editingScenario ? FiEdit2 : FiSave} className="w-5 h-5 mr-2 text-secondary" />
                   {editingScenario ? 'Edit Scenario' : 'Save Scenario'}
                 </h4>
                 <button
@@ -452,7 +465,7 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
               
               <div className="mb-4">
                 <p className="text-gray-600 font-open-sans mb-4">
-                  Select a scenario to compare with your current inputs:
+                  Select exactly 2 scenarios to compare ({selectedForComparison.length}/2 selected):
                 </p>
                 
                 <div className="space-y-3">
@@ -466,37 +479,41 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
                       <p className="text-gray-500 font-open-sans">No saved scenarios to compare</p>
                     </div>
                   ) : (
-                    scenarios.map((scenario) => (
-                      <div
-                        key={scenario.id}
-                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                          scenarioToCompare?.id === scenario.id 
-                            ? 'bg-secondary/10 border-secondary' 
-                            : 'bg-white border-gray-200 hover:bg-gray-50'
-                        }`}
-                        onClick={() => setScenarioToCompare(scenario)}
-                      >
-                        <div className="flex items-center">
-                          <div className={`w-4 h-4 rounded-full mr-3 flex-shrink-0 ${
-                            scenarioToCompare?.id === scenario.id 
-                              ? 'bg-secondary' 
-                              : 'border border-gray-400'
-                          }`}>
-                            {scenarioToCompare?.id === scenario.id && (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <SafeIcon icon={FiCheck} className="w-3 h-3 text-white" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <h5 className="font-semibold text-gray-800">{scenario.name}</h5>
-                            {scenario.description && (
-                              <p className="text-sm text-gray-500 mt-1">{scenario.description}</p>
-                            )}
+                    scenarios.map((scenario) => {
+                      const isSelected = selectedForComparison.some(s => s.id === scenario.id);
+                      return (
+                        <div
+                          key={scenario.id}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-secondary/10 border-secondary'
+                              : 'bg-white border-gray-200 hover:bg-gray-50'
+                          }`}
+                          onClick={() => toggleScenarioSelection(scenario)}
+                        >
+                          <div className="flex items-center">
+                            <div className={`w-4 h-4 rounded-full mr-3 flex-shrink-0 ${
+                              isSelected
+                                ? 'bg-secondary'
+                                : 'border border-gray-400'
+                            }`}>
+                              {isSelected && (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <SafeIcon icon={FiCheck} className="w-3 h-3 text-white" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div>
+                              <h5 className="font-semibold text-gray-800">{scenario.name}</h5>
+                              {scenario.description && (
+                                <p className="text-sm text-gray-500 mt-1">{scenario.description}</p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -505,16 +522,16 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={handleCompare}
-                  disabled={!scenarioToCompare}
+                  onClick={handleCompareScenarios}
+                  disabled={selectedForComparison.length !== 2}
                   className={`flex-1 py-2 rounded-lg font-semibold font-open-sans flex items-center justify-center space-x-2 ${
-                    scenarioToCompare 
-                      ? 'bg-primary text-white hover:bg-primary/90' 
+                    selectedForComparison.length === 2
+                      ? 'bg-primary text-white hover:bg-primary/90'
                       : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   }`}
                 >
                   <SafeIcon icon={FiGitCompare} className="w-4 h-4" />
-                  <span>Compare</span>
+                  <span>Compare Selected</span>
                 </motion.button>
                 
                 <motion.button
@@ -530,37 +547,6 @@ const ScenarioManager = ({ inputs, outputs, onLoadScenario }) => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Comparison Banner (if in comparison mode) */}
-      {comparing && comparisonData && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4 p-3 bg-accent/20 rounded-lg border border-accent"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <SafeIcon icon={FiGitCompare} className="w-5 h-5 text-primary mr-2" />
-              <div>
-                <p className="text-sm font-medium text-primary">
-                  Comparing with: <span className="font-semibold">{comparisonData.scenario1.name}</span>
-                </p>
-                {comparisonData.scenario1.description && (
-                  <p className="text-xs text-gray-600 mt-1">{comparisonData.scenario1.description}</p>
-                )}
-              </div>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleCancelCompare}
-              className="p-1 rounded-full bg-gray-200 hover:bg-gray-300"
-            >
-              <SafeIcon icon={FiX} className="w-4 h-4 text-gray-700" />
-            </motion.button>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 };

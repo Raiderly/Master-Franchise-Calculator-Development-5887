@@ -5,15 +5,15 @@ export const calculateProjections = (inputs) => {
     // Calculate active franchisees (accounting for churn)
     const churnRate = inputs.churnRate / 100;
     const retentionRate = 1 - churnRate;
-    
     let activeFranchisees;
+    
     if (year === 1) {
       activeFranchisees = inputs.initialFranchisees + inputs.newFranchiseesPerYear;
     } else {
       const prevActiveFranchisees = results[year - 2].activeFranchisees;
       activeFranchisees = Math.round(prevActiveFranchisees * retentionRate + inputs.newFranchiseesPerYear);
     }
-
+    
     // Calculate revenue streams
     const masterFranchiseFees = inputs.newFranchiseesPerYear * inputs.masterFranchiseFee;
     const royaltyIncome = activeFranchisees * inputs.avgUnitRevenue * (inputs.royaltyRate / 100);

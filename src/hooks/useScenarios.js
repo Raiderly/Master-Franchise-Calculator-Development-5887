@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -7,13 +7,13 @@ export const useScenarios = () => {
   const { user } = useAuth();
   const [scenarios, setScenarios] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [comparing, setComparing] = useState(false);
-  const [comparisonData, setComparisonData] = useState(null);
 
-  const fetchScenarios = async () => {
+  // Fetch all scenarios for the current user
+  const fetchScenarios = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
+    
     try {
       const { data, error } = await supabase
         .from('scenarios_qwerty12345')
@@ -22,6 +22,7 @@ export const useScenarios = () => {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
+      
       setScenarios(data || []);
     } catch (error) {
       console.error('Error fetching scenarios:', error);
@@ -29,8 +30,9 @@ export const useScenarios = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
+  // Save a new scenario
   const saveScenario = async (scenarioData) => {
     if (!user) {
       toast.error('You must be logged in to save scenarios');
@@ -44,8 +46,8 @@ export const useScenarios = () => {
           user_id: user.id,
           name: scenarioData.name,
           description: scenarioData.description || null,
-          inputs: scenarioData.inputs,
-          outputs: scenarioData.outputs
+          input_data: scenarioData.input_data,
+          output_data: scenarioData.output_data || null
         }])
         .select()
         .single();
@@ -53,7 +55,6 @@ export const useScenarios = () => {
       if (error) throw error;
       
       setScenarios(prev => [data, ...prev]);
-      toast.success('Scenario saved successfully');
       return data;
     } catch (error) {
       console.error('Error saving scenario:', error);
@@ -62,6 +63,7 @@ export const useScenarios = () => {
     }
   };
 
+  // Update an existing scenario
   const updateScenario = async (id, scenarioData) => {
     if (!user) return;
     
@@ -71,8 +73,8 @@ export const useScenarios = () => {
         .update({
           name: scenarioData.name,
           description: scenarioData.description || null,
-          inputs: scenarioData.inputs,
-          outputs: scenarioData.outputs
+          input_data: scenarioData.input_data,
+          output_data: scenarioData.output_data || null
         })
         .eq('id', id)
         .eq('user_id', user.id)
@@ -82,7 +84,6 @@ export const useScenarios = () => {
       if (error) throw error;
       
       setScenarios(prev => prev.map(s => s.id === id ? data : s));
-      toast.success('Scenario updated successfully');
       return data;
     } catch (error) {
       console.error('Error updating scenario:', error);
@@ -91,6 +92,7 @@ export const useScenarios = () => {
     }
   };
 
+  // Delete a scenario
   const deleteScenario = async (id) => {
     try {
       const { error } = await supabase
@@ -103,41 +105,20 @@ export const useScenarios = () => {
       
       setScenarios(prev => prev.filter(s => s.id !== id));
       toast.success('Scenario deleted');
-      
-      // Clear comparison if one of the compared scenarios was deleted
-      if (comparisonData && (comparisonData.scenario1.id === id || comparisonData.scenario2?.id === id)) {
-        setComparing(false);
-        setComparisonData(null);
-      }
     } catch (error) {
       console.error('Error deleting scenario:', error);
       toast.error('Error deleting scenario');
     }
   };
 
-  const compareScenarios = (scenario1, scenario2 = null) => {
-    if (scenario2) {
-      setComparisonData({ scenario1, scenario2 });
-      setComparing(true);
-    } else {
-      // If only one scenario provided, just load it without comparison mode
-      setComparing(false);
-      setComparisonData(null);
-    }
-  };
-
-  const clearComparison = () => {
-    setComparing(false);
-    setComparisonData(null);
-  };
-
+  // Fetch scenarios when user changes
   useEffect(() => {
     if (user) {
       fetchScenarios();
     } else {
       setScenarios([]);
     }
-  }, [user]);
+  }, [user, fetchScenarios]);
 
   return {
     scenarios,
@@ -145,10 +126,6 @@ export const useScenarios = () => {
     saveScenario,
     updateScenario,
     deleteScenario,
-    fetchScenarios,
-    comparing,
-    comparisonData,
-    compareScenarios,
-    clearComparison
+    fetchScenarios
   };
 };

@@ -22,12 +22,12 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+    
     try {
       const { error } = isLogin 
         ? await signIn(email, password)
         : await signUp(email, password);
-
+      
       if (error) {
         toast.error(error.message);
       } else if (!isLogin) {
@@ -47,7 +47,6 @@ const LoginForm = () => {
     
     try {
       const { error } = await resetPassword(resetEmail);
-      
       if (error) {
         toast.error(error.message);
       } else {
@@ -86,24 +85,22 @@ const LoginForm = () => {
         variants={containerVariants}
         className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md"
       >
-        <motion.div 
-          variants={itemVariants}
-          className="text-center mb-8"
-        >
+        <motion.div variants={itemVariants} className="text-center mb-8">
           <img 
             src="https://app1.sharemyimage.com/2025/07/17/ufg-centered-stacked-logo-full-color-rgb-900px-w-72ppi.webp" 
             alt="UFG Logo" 
-            className="h-16 w-auto mx-auto mb-4"
+            className="h-16 w-auto mx-auto mb-4" 
           />
           <h2 className="text-2xl font-montserrat font-bold text-primary mb-2">
-            {showResetPassword 
-              ? 'Reset Your Password' 
-              : isLogin ? 'Welcome Back' : 'Create Account'}
+            {showResetPassword ? 'Reset Your Password' : isLogin ? 'Welcome Back' : 'Create Account'}
           </h2>
           <p className="text-gray-600 font-open-sans">
             {showResetPassword 
-              ? 'Enter your email to receive reset instructions' 
-              : isLogin ? 'Sign in to access your calculator' : 'Join to start calculating'}
+              ? 'Enter your email to receive reset instructions'
+              : isLogin 
+                ? 'Sign in to access your calculator' 
+                : 'Join to start calculating'
+            }
           </p>
         </motion.div>
 
@@ -114,10 +111,7 @@ const LoginForm = () => {
                 Email Address
               </label>
               <div className="relative">
-                <SafeIcon 
-                  icon={FiMail} 
-                  className="absolute left-3 top-3 w-5 h-5 text-gray-400"
-                />
+                <SafeIcon icon={FiMail} className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
                   value={resetEmail}
@@ -190,10 +184,7 @@ const LoginForm = () => {
                 Email Address
               </label>
               <div className="relative">
-                <SafeIcon 
-                  icon={FiMail} 
-                  className="absolute left-3 top-3 w-5 h-5 text-gray-400"
-                />
+                <SafeIcon icon={FiMail} className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
                   type="email"
                   value={email}
@@ -210,10 +201,7 @@ const LoginForm = () => {
                 Password
               </label>
               <div className="relative">
-                <SafeIcon 
-                  icon={FiLock} 
-                  className="absolute left-3 top-3 w-5 h-5 text-gray-400"
-                />
+                <SafeIcon icon={FiLock} className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -227,16 +215,12 @@ const LoginForm = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                 >
-                  <SafeIcon 
-                    icon={showPassword ? FiEyeOff : FiEye} 
-                    className="w-5 h-5"
-                  />
+                  <SafeIcon icon={showPassword ? FiEyeOff : FiEye} className="w-5 h-5" />
                 </button>
               </div>
-              
               {isLogin && (
                 <div className="mt-2 text-right">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowResetPassword(true)}
                     className="text-sm text-secondary hover:text-primary font-open-sans underline"
@@ -271,16 +255,16 @@ const LoginForm = () => {
         )}
 
         {!showResetPassword && (
-          <motion.div 
-            variants={itemVariants}
-            className="mt-6 text-center"
-          >
+          <motion.div variants={itemVariants} className="mt-6 text-center">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
               className="text-secondary hover:text-primary font-medium font-open-sans"
             >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+              {isLogin 
+                ? "Don't have an account? Sign up" 
+                : "Already have an account? Sign in"
+              }
             </button>
           </motion.div>
         )}

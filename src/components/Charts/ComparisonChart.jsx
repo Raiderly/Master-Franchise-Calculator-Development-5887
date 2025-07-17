@@ -1,12 +1,18 @@
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { formatCurrency, formatNumber, formatPercentage } from '../../utils/calculations';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
 const { FiGitCompare } = FiIcons;
 
-const ComparisonChart = ({ data, comparisonData, metric = 'totalRevenue', format = 'currency', title = 'Comparison' }) => {
+const ComparisonChart = ({ 
+  data, 
+  comparisonData, 
+  metric = 'totalRevenue', 
+  format = 'currency', 
+  title = 'Comparison' 
+}) => {
   if (!data || !comparisonData) return null;
 
   // Format values based on the specified format type
@@ -22,133 +28,35 @@ const ComparisonChart = ({ data, comparisonData, metric = 'totalRevenue', format
     }
   };
 
-  // Get the data series for the chart
-  const currentData = data.map(d => ({
-    year: d.year,
-    value: d[metric] || 0
-  }));
+  // Prepare data for the chart
+  const chartData = data.map(item => {
+    const comparisonItem = comparisonData.find(c => c.year === item.year);
+    return {
+      year: item.year,
+      current: item[metric] || 0,
+      comparison: comparisonItem ? comparisonItem[metric] || 0 : 0
+    };
+  });
 
-  const comparisonSeriesData = comparisonData.map(d => ({
-    year: d.year,
-    value: d[metric] || 0
-  }));
-
-  // Enhanced styling options
-  const option = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow',
-        shadowStyle: {
-          color: 'rgba(0, 0, 0, 0.05)'
-        }
-      },
-      backgroundColor: '#fff',
-      borderColor: '#0A3466',
-      borderWidth: 1,
-      textStyle: {
-        color: '#333',
-        fontFamily: 'Open Sans'
-      },
-      formatter: function(params) {
-        let result = `<div style="font-weight: bold; margin-bottom: 5px;">Year ${params[0].axisValue}</div>`;
-        params.forEach(param => {
-          const colorSpan = `<span style="display:inline-block;margin-right:4px;border-radius:10px;width:10px;height:10px;background-color:${param.color};"></span>`;
-          result += `<div>${colorSpan} ${param.seriesName}: ${formatValue(param.value)}</div>`;
-        });
-        return result;
-      },
-      extraCssText: 'box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);'
-    },
-    legend: {
-      data: ['Current', 'Comparison'],
-      textStyle: {
-        fontFamily: 'Open Sans',
-        color: '#333'
-      },
-      icon: 'roundRect',
-      itemWidth: 12,
-      itemHeight: 12,
-      itemGap: 20,
-      bottom: 0
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '15%',
-      top: '15%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: true,
-      data: currentData.map(d => d.year),
-      axisLabel: {
-        fontFamily: 'Open Sans',
-        color: '#666'
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#ddd'
-        }
-      },
-      axisTick: {
-        alignWithLabel: true
-      }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: {
-        formatter: function(value) {
-          return formatValue(value);
-        },
-        fontFamily: 'Open Sans',
-        color: '#666'
-      },
-      splitLine: {
-        lineStyle: {
-          color: '#eee',
-          type: 'dashed'
-        }
-      }
-    },
-    series: [
-      {
-        name: 'Current',
-        type: 'bar',
-        barWidth: '30%',
-        itemStyle: {
-          color: '#0A3466',
-          borderRadius: [4, 4, 0, 0]
-        },
-        emphasis: {
-          itemStyle: {
-            color: '#0A3466',
-            shadowBlur: 10,
-            shadowColor: 'rgba(10,52,102,0.3)'
-          }
-        },
-        data: currentData.map(d => d.value)
-      },
-      {
-        name: 'Comparison',
-        type: 'bar',
-        barWidth: '30%',
-        barGap: '0%',
-        itemStyle: {
-          color: '#3083DC',
-          borderRadius: [4, 4, 0, 0]
-        },
-        emphasis: {
-          itemStyle: {
-            color: '#3083DC',
-            shadowBlur: 10,
-            shadowColor: 'rgba(48,131,220,0.3)'
-          }
-        },
-        data: comparisonSeriesData.map(d => d.value)
-      }
-    ]
+  // Custom tooltip formatter
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="text-gray-700 font-semibold mb-1">Year {label}</p>
+          {payload.map((entry, index) => (
+            <p 
+              key={index} 
+              className="text-sm" 
+              style={{ color: entry.color }}
+            >
+              {entry.name}: {formatValue(entry.value)}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -161,13 +69,52 @@ const ComparisonChart = ({ data, comparisonData, metric = 'totalRevenue', format
           {title}
         </h3>
       </div>
-      
       <div className="w-full h-80">
-        <ReactECharts 
-          option={option} 
-          style={{ height: '100%', width: '100%' }}
-          opts={{ renderer: 'canvas' }}
-        />
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={chartData}
+            margin={{ top: 10, right: 30, left: 0, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis 
+              dataKey="year" 
+              tick={{ fontSize: 12 }}
+              tickFormatter={year => `Year ${year}`}
+            />
+            <YAxis 
+              tick={{ fontSize: 12 }}
+              tickFormatter={value => {
+                if (format === 'currency') {
+                  return value >= 1000000 
+                    ? `$${(value / 1000000).toFixed(1)}M` 
+                    : value >= 1000 
+                    ? `$${(value / 1000).toFixed(0)}K` 
+                    : `$${value}`;
+                } else if (format === 'percentage') {
+                  return `${value}%`;
+                } else {
+                  return value;
+                }
+              }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend />
+            <Bar 
+              dataKey="current" 
+              name="Current" 
+              fill="#0A3466" 
+              barSize={20}
+              radius={[4, 4, 0, 0]}
+            />
+            <Bar 
+              dataKey="comparison" 
+              name="Comparison" 
+              fill="#3083DC" 
+              barSize={20}
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
