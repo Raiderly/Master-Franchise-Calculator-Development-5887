@@ -5,7 +5,7 @@ import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
-const { FiMail, FiLock, FiEye, FiEyeOff, FiLogIn, FiUserPlus, FiHelpCircle } = FiIcons;
+const { FiMail, FiLock, FiEye, FiEyeOff, FiLogIn, FiUserPlus, FiHelpCircle, FiArrowLeft } = FiIcons;
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -32,7 +32,7 @@ const LoginForm = () => {
         toast.error(error.message);
       } else if (!isLogin) {
         toast.success('Account created successfully!');
-        setIsLogin(true); // Switch back to login view
+        setIsLogin(true);
       }
     } catch (error) {
       toast.error('An error occurred');
@@ -61,7 +61,6 @@ const LoginForm = () => {
     }
   };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -141,6 +140,7 @@ const LoginForm = () => {
                     <h3 className="text-sm font-medium text-green-800">Reset instructions sent!</h3>
                     <div className="mt-1 text-sm text-green-700">
                       <p>Check your email for instructions to reset your password.</p>
+                      <p className="mt-2">You can close this window or continue to login once you've reset your password.</p>
                     </div>
                   </div>
                 </div>
@@ -168,15 +168,18 @@ const LoginForm = () => {
               </motion.button>
             )}
 
-            <motion.div variants={itemVariants} className="mt-6 text-center">
+            <motion.div variants={itemVariants} className="text-center">
               <button
+                type="button"
                 onClick={() => {
                   setShowResetPassword(false);
                   setResetSent(false);
+                  setResetEmail('');
                 }}
-                className="text-secondary hover:text-primary font-medium font-open-sans"
+                className="text-secondary hover:text-primary font-medium font-open-sans flex items-center justify-center space-x-2 mx-auto"
               >
-                Back to login
+                <SafeIcon icon={FiArrowLeft} className="w-4 h-4" />
+                <span>Back to Login</span>
               </button>
             </motion.div>
           </form>
@@ -232,11 +235,11 @@ const LoginForm = () => {
               </div>
               
               {isLogin && (
-                <div className="mt-1 text-right">
+                <div className="mt-2 text-right">
                   <button 
                     type="button"
                     onClick={() => setShowResetPassword(true)}
-                    className="text-sm text-secondary hover:text-primary font-open-sans"
+                    className="text-sm text-secondary hover:text-primary font-open-sans underline"
                   >
                     Forgot password?
                   </button>
@@ -273,6 +276,7 @@ const LoginForm = () => {
             className="mt-6 text-center"
           >
             <button
+              type="button"
               onClick={() => setIsLogin(!isLogin)}
               className="text-secondary hover:text-primary font-medium font-open-sans"
             >

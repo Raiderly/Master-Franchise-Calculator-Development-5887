@@ -5,7 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './contexts/AuthContext';
 import Header from './components/Layout/Header';
 import LoginForm from './components/Auth/LoginForm';
-import Calculator from './components/Calculator/Calculator';
+import AdvancedCalculator from './components/Calculator/AdvancedCalculator';
 
 const AppContent = () => {
   const { user, loading } = useAuth();
@@ -28,7 +28,7 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-accent/20 to-secondary/20">
       <Header />
-      <Calculator />
+      <AdvancedCalculator />
     </div>
   );
 };
