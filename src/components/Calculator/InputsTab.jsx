@@ -3,8 +3,9 @@ import { motion } from 'framer-motion';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 import Tooltip from '../UI/Tooltip';
+import NumberInput from '../UI/NumberInput';
 
-const { FiInfo } = FiIcons;
+const { FiInfo, FiDollarSign, FiPercent, FiUsers, FiTrendingUp, FiSettings } = FiIcons;
 
 const InputsTab = ({ inputs, setInputs }) => {
   const handleInputChange = (field, value) => {
@@ -21,7 +22,8 @@ const InputsTab = ({ inputs, setInputs }) => {
       value: inputs.initialFranchisees,
       tooltip: 'Number of franchisees at the start of Year 1',
       type: 'number',
-      min: 0
+      min: 0,
+      icon: FiUsers
     },
     {
       key: 'newFranchiseesPerYear',
@@ -29,7 +31,8 @@ const InputsTab = ({ inputs, setInputs }) => {
       value: inputs.newFranchiseesPerYear,
       tooltip: 'Expected number of new franchisees recruited annually',
       type: 'number',
-      min: 0
+      min: 0,
+      icon: FiTrendingUp
     },
     {
       key: 'masterFranchiseFee',
@@ -38,7 +41,8 @@ const InputsTab = ({ inputs, setInputs }) => {
       tooltip: 'Initial fee paid by each new franchisee',
       type: 'number',
       min: 0,
-      prefix: '$'
+      prefix: '$',
+      icon: FiDollarSign
     },
     {
       key: 'royaltyRate',
@@ -48,7 +52,8 @@ const InputsTab = ({ inputs, setInputs }) => {
       type: 'number',
       min: 0,
       max: 100,
-      suffix: '%'
+      suffix: '%',
+      icon: FiPercent
     },
     {
       key: 'avgUnitRevenue',
@@ -57,7 +62,8 @@ const InputsTab = ({ inputs, setInputs }) => {
       tooltip: 'Average annual revenue per franchisee unit',
       type: 'number',
       min: 0,
-      prefix: '$'
+      prefix: '$',
+      icon: FiDollarSign
     },
     {
       key: 'churnRate',
@@ -67,7 +73,8 @@ const InputsTab = ({ inputs, setInputs }) => {
       type: 'number',
       min: 0,
       max: 100,
-      suffix: '%'
+      suffix: '%',
+      icon: FiPercent
     },
     {
       key: 'trainingFee',
@@ -76,7 +83,8 @@ const InputsTab = ({ inputs, setInputs }) => {
       tooltip: 'One-time training fee per new franchisee',
       type: 'number',
       min: 0,
-      prefix: '$'
+      prefix: '$',
+      icon: FiDollarSign
     },
     {
       key: 'marketingLevyRate',
@@ -86,7 +94,8 @@ const InputsTab = ({ inputs, setInputs }) => {
       type: 'number',
       min: 0,
       max: 100,
-      suffix: '%'
+      suffix: '%',
+      icon: FiPercent
     },
     {
       key: 'techFeePerUnit',
@@ -95,7 +104,8 @@ const InputsTab = ({ inputs, setInputs }) => {
       tooltip: 'Monthly technology fee per franchisee',
       type: 'number',
       min: 0,
-      prefix: '$'
+      prefix: '$',
+      icon: FiSettings
     },
     {
       key: 'operatingCostRate',
@@ -105,9 +115,45 @@ const InputsTab = ({ inputs, setInputs }) => {
       type: 'number',
       min: 0,
       max: 100,
-      suffix: '%'
+      suffix: '%',
+      icon: FiPercent
     }
   ];
+
+  // Group fields into categories
+  const fieldGroups = [
+    {
+      title: 'Network Development',
+      icon: FiUsers,
+      fields: ['initialFranchisees', 'newFranchiseesPerYear', 'churnRate']
+    },
+    {
+      title: 'Revenue Structure',
+      icon: FiDollarSign,
+      fields: ['masterFranchiseFee', 'royaltyRate', 'avgUnitRevenue', 'trainingFee', 'techFeePerUnit']
+    },
+    {
+      title: 'Operations',
+      icon: FiSettings,
+      fields: ['marketingLevyRate', 'operatingCostRate']
+    }
+  ];
+
+  // Animation variants for staggered animations
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
 
   return (
     <motion.div
@@ -115,50 +161,54 @@ const InputsTab = ({ inputs, setInputs }) => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-xl font-montserrat font-semibold text-primary mb-6">
-          Master Franchise Parameters
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {inputFields.map((field) => (
-            <div key={field.key} className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <label className="block text-sm font-medium text-gray-700 font-open-sans">
-                  {field.label}
-                </label>
-                <Tooltip content={field.tooltip}>
-                  <SafeIcon icon={FiInfo} className="w-4 h-4 text-gray-400 cursor-help" />
-                </Tooltip>
-              </div>
-              
-              <div className="relative">
-                {field.prefix && (
-                  <span className="absolute left-3 top-3 text-gray-500 font-open-sans">
-                    {field.prefix}
-                  </span>
-                )}
-                <input
-                  type={field.type}
-                  value={field.value}
-                  onChange={(e) => handleInputChange(field.key, e.target.value)}
-                  min={field.min}
-                  max={field.max}
-                  className={`w-full py-3 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-transparent font-open-sans ${
-                    field.prefix ? 'pl-8' : ''
-                  } ${field.suffix ? 'pr-8' : ''}`}
-                  placeholder={`Enter ${field.label.toLowerCase()}`}
-                />
-                {field.suffix && (
-                  <span className="absolute right-3 top-3 text-gray-500 font-open-sans">
-                    {field.suffix}
-                  </span>
-                )}
-              </div>
+      {fieldGroups.map((group) => (
+        <motion.div
+          key={group.title}
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="bg-white rounded-xl shadow-lg p-6"
+        >
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-primary/10 rounded-full">
+              <SafeIcon icon={group.icon} className="w-6 h-6 text-primary" />
             </div>
-          ))}
-        </div>
-      </div>
+            <h3 className="text-xl font-montserrat font-semibold text-primary">
+              {group.title}
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {inputFields
+              .filter(field => group.fields.includes(field.key))
+              .map((field) => (
+                <motion.div 
+                  key={field.key} 
+                  variants={itemVariants}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <SafeIcon icon={field.icon} className="w-4 h-4 text-gray-500" />
+                    <label className="block text-sm font-medium text-gray-700 font-open-sans">
+                      {field.label}
+                    </label>
+                    <Tooltip content={field.tooltip}>
+                      <SafeIcon icon={FiInfo} className="w-4 h-4 text-gray-400 cursor-help" />
+                    </Tooltip>
+                  </div>
+                  <NumberInput
+                    value={field.value}
+                    onChange={(value) => handleInputChange(field.key, value)}
+                    min={field.min}
+                    max={field.max}
+                    prefix={field.prefix}
+                    suffix={field.suffix}
+                  />
+                </motion.div>
+              ))}
+          </div>
+        </motion.div>
+      ))}
     </motion.div>
   );
 };

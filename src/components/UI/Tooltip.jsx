@@ -6,9 +6,11 @@ const Tooltip = ({ children, content }) => {
 
   return (
     <div className="relative inline-block">
-      <div
+      <div 
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
+        onTouchStart={() => setIsVisible(true)}
+        onTouchEnd={() => setIsVisible(false)}
       >
         {children}
       </div>
